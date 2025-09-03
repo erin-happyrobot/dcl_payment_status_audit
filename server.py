@@ -9,7 +9,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from datetime import timedelta
 import pandas as pd
-from dcl_payment_status_audit.utils.aws_utils import invoke_lambda
+from .utils.aws_utils import invoke_lambda
 from typing import List
 from fastapi import HTTPException
 from logging import getLogger
