@@ -7,10 +7,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import requests
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 from datetime import timedelta
 import pandas as pd
-from aws_utils import invoke_lambda
+from dcl_payment_status_audit.utils.aws_utils import invoke_lambda
 from typing import List
 from fastapi import HTTPException
 from logging import getLogger
@@ -32,7 +31,7 @@ def perform_action() -> None:
     session.mount('https://', HTTPAdapter(max_retries=3))
     url = "https://platform.happyrobot.ai/api/v1/runs"
     headers = {
-        "anyuthorization": f"Bearer {os.getenv('PLATFORM_API_KEY')}",
+        "Authorization": f"Bearer {os.getenv('PLATFORM_API_KEY')}",
         "x-organization-id": os.getenv('DCL_ORG_ID'),
     }
     start_utc = datetime.now(timezone.utc) - timedelta(hours=12)
@@ -99,9 +98,15 @@ def send_email(
             "subject": subject,
             "body": body,
         }
+        aws_region = os.getenv("AWS_REGION") or "us-east-2"
+        lambda_function_name = os.getenv("LAMBDA_FUNCTION_NAME")
+        if not lambda_function_name:
+            logger.error("Missing LAMBDA_FUNCTION_NAME environment variable")
+            raise HTTPException(status_code=500, detail="Missing LAMBDA_FUNCTION_NAME env var")
+
         invoke_lambda(
-            region=os.getenv("AWS_REGION"),
-            function_name=os.getenv("LAMBDA_FUNCTION_NAME"),
+            region=aws_region,
+            function_name=lambda_function_name,
             payload=payload,
         )
         return {
